@@ -447,6 +447,8 @@ class SemanticDependencyParser(flair.nn.Model):
 			tag_type=state["tag_type"],
 			use_crf=state["use_crf"],
 			use_rnn=state["use_rnn"],
+			tree=state["tree"],
+			punct=state["punct"],
 			train_initial_hidden_state=state["train_initial_hidden_state"],
 			n_mlp_arc = state["n_mlp_arc"],
 			n_mlp_rel = state["n_mlp_rel"],
@@ -483,6 +485,8 @@ class SemanticDependencyParser(flair.nn.Model):
 			"tag_type":self.tag_type,
 			"use_crf": self.use_crf,
 			"use_rnn":self.use_rnn,
+			"tree":self.tree,
+			"punct":self.punct,
 			"train_initial_hidden_state": self.train_initial_hidden_state,
 			"n_mlp_arc": self.n_mlp_arc,
 			"n_mlp_rel": self.n_mlp_rel,
@@ -1016,9 +1020,6 @@ class SemanticDependencyParser(flair.nn.Model):
 						lfn += n_false_negatives
 
 						eval_loss += loss
-						eval_loss /= batch_no
-						UF1=self.compute_F1(utp,ufp,ufn)
-						LF1=self.compute_F1(ltp,lfp,lfn)
 
 					if out_path is not None:
 						masked_arc_scores = arc_scores.masked_fill(~binary_mask.bool(), float(-1e9))
@@ -1070,7 +1071,9 @@ class SemanticDependencyParser(flair.nn.Model):
 								)
 								lines.append(eval_line)
 							lines.append("\n")
-
+				eval_loss /= batch_no
+				UF1=self.compute_F1(utp,ufp,ufn)
+				LF1=self.compute_F1(ltp,lfp,lfn)
 				if out_path is not None:
 					with open(out_path, "w", encoding="utf-8") as outfile:
 						outfile.write("".join(lines))
@@ -1128,7 +1131,7 @@ class SemanticDependencyParser(flair.nn.Model):
 			# decode_time+=decode_end-decode_start
 			# ignore all punctuation if not specified
 
-			if not self.punct and out_path is None :
+			if not self.punct:
 				for sent_id,sentence in enumerate(batch):
 					for token_id, token in enumerate(sentence):
 						upos=token.get_tag('upos').value
